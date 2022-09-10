@@ -1,0 +1,5 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Username=admin;Password=admin;Host=localhost;Port=5432;Database=DbMonitor;Pooling=true;Integrated Security=true;"
+  }
+}
