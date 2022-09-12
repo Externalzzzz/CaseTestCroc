@@ -1,241 +1,575 @@
-﻿@{
-    ViewData["Title"] = "Главная страница монитора";
-   
-}
+﻿@{ ViewData["Title"] = "Главная страница монитора"; }
 <head>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.1/moment.min.js"></script>
+  <script src="~/lib/chart.js/chart.min.js"></script>
+  <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
 
-<script type="text/javascript" src="js/bootstrap-datetimepicker.min.js"></script>
-<script src="~/lib/chart.js/chart.min.js"></script>
-<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.js"></script>
-<script src="~/lib/bootstrap/dist/js/bootstrap.esm.min.js"></script>
-<script src="~/lib/bootstrap/dist/js/bootstrap.esm.js"></script>
-<script src="~/lib/bootstrap/dist/js/bootstrap.min.js"></script>
-<script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
-<script src="~/lib/jquery/dist/jquery.min.js"></script>
+  <script src="~/lib/bootstrap/dist/js/bootstrap.js"></script>
+  <script src="~/lib/jquery/dist/jquery.min.js"></script>
+  @*
+  <script src="https://unpkg.com/@popperjs/core@2"></script>
+  *@
 </head>
 <body>
-    <h1 class="display-1" align='center'>Мониторинг состояния базы данных</h1>
+  <h1 class="display-1" align="center">Мониторинг состояния базы данных</h1>
+  <br />
+  <div class="container-fluid" align="center" style="border-radius: 70px">
+    <h2 class="display-2">Текущая нагрузка</h2>
     <br />
-    <div class="container-fluid" align='center' style="border-radius:70px">
-    <h2 class="display-2"> Текущая нагрузка</h2>
+    <div
+      class="row container"
+      style="background-color: #d0d0d0; border-radius: 20px"
+    >
+      <h5 class="display-5">Нагрузка сервера</h5>
 
-    <div class="row container">
-        
-        <div class="col-md-4 card" style="background-color: #D0D0D0" align='center'>
-            <div>
-                <h5 class="display-5 card-header" style="border-radius:20px">70%</h5>
-            </div>
-           <div class="card-body">CPU</div> 
+      <div
+        class="col-md-4 card"
+        style="background-color: #d0d0d0; border-width: 0px"
+        align="center"
+      >
+        <div>
+          <h5
+            id="cpu_load_serv"
+            class="display-5 card-header"
+            style="border-radius: 20px"
+          >
+            0 %
+          </h5>
         </div>
-         <div class="col-md-4 card" style="background-color: #D0D0D0" align='center'>
-            <div>
-                <h5 class="display-5 card-header" style="border-radius:20px">70%</h5>
-            </div>
-           <div class="card-body">RAM</div> 
+        <div class="card-body"><h6 class="display-6">CPU</h6></div>
+      </div>
+      <div
+        class="col-md-4 card"
+        style="background-color: #d0d0d0; border-width: 0px"
+        align="center"
+      >
+        <div>
+          <h5
+            id="ram_load"
+            class="display-5 card-header"
+            style="border-radius: 20px"
+          >
+            0 MB
+          </h5>
         </div>
-         <div class="col-md-4 card" style="background-color: #D0D0D0" align='center'>
-            <div>
-                <h5 class="display-5 card-header" style="border-radius:20px">70%</h5>
-            </div>
-           <div class="card-body">CPU</div> 
+        <div class="card-body"><h6 class="display-6">RAM</h6></div>
+      </div>
+      <div
+        class="col-md-4 card"
+        style="background-color: #d0d0d0; border-width: 0px"
+        align="center"
+      >
+        <div>
+          <h5
+            id="System_time"
+            class="display-5 card-header"
+            style="border-radius: 20px"
+          >
+            0 hours
+          </h5>
         </div>
-    </div>
+        <div class="card-body"><h6 class="display-6">Время работы</h6></div>
+      </div>
     </div>
     <br />
-    <div class="container-fluid" align='center'>
-        <h2 class="display-2"> Монитор изменений</h2>
-        <br />
-        <div class="container">
-        <di class="row" alignt="center">
+  </div>
 
-
-                            <input type="date" id="date1" class="form-control row-cols-md-3"/>
-
-                            <input type="date" id="date2" class="form-control row-cols-md-3"/>
-    
-                            <button id="setFilterDate" class="btn form-control btn-outline-dark row-cols-md-3">Выбрать</button>
-
-                            <button id="setRealTimeMonitor" class="btn  form-control btn-outline-dark row-cols-md-3">Мониторинг в реальном времени</button>
-
-
-
-
-        </di v>
-        </div>
-
-        <canvas id="myChart" class="table" width="500" height="300">Диаграмма</canvas>
-
+  <br />
+  <!-- Всплывающие окна-->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div
+      id="liveToast"
+      class="toast align-items-center text-white bg-danger border-0"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
+      <div class="toast-header">
+        <strong class="me-auto">Внимание</strong>
+        <small>Некорректный ввод</small>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="toast"
+          aria-label="Закрыть"
+        ></button>
+      </div>
+      <div class="toast-body">Введите диапазон дат!</div>
     </div>
-    <div class="container-fluid" align='center'>
-        <h4 class="display-4">Таблица всех изменений</h4>
-    <table class="table table-striped table-hover table-bordered">
+  </div>
+
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div
+      id="liveToast2"
+      class="toast align-items-center text-white bg-danger border-0"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
+      <div class="toast-header">
+        <strong class="me-auto">Внимание</strong>
+        <small>Некорректный ввод</small>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="toast"
+          aria-label="Закрыть"
+        ></button>
+      </div>
+      <div class="toast-body">
+        Введите корректный диапазон дат! Первая дата должна быть раньше второй.
+      </div>
+    </div>
+  </div>
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div
+      id="liveToastTypeAccurancy"
+      class="toast align-items-center text-white bg-danger border-0"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
+      <div class="toast-header">
+        <strong class="me-auto">Внимание</strong>
+        <small>Некорректный ввод</small>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="toast"
+          aria-label="Закрыть"
+        ></button>
+      </div>
+      <div class="toast-body">Выберите точность выборки!</div>
+    </div>
+  </div>
+
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div
+      id="liveToastEnterError"
+      class="toast align-items-center text-white bg-danger border-0"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
+      <div class="toast-header">
+        <strong class="me-auto">Внимание</strong>
+        <small>Некорректный ввод</small>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="toast"
+          aria-label="Закрыть"
+        ></button>
+      </div>
+      <div class="toast-body">
+        Нельзя сделать выборку за день с точностью до дня!
+      </div>
+    </div>
+  </div>
+
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div
+      id="liveToast3"
+      class="toast align-items-center text-white bg-danger border-0"
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
+      <div class="toast-header">
+        <strong class="me-auto">Внимание</strong>
+        <small>Некорректный ввод</small>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="toast"
+          aria-label="Закрыть"
+        ></button>
+      </div>
+      <div class="toast-body">
+        Введите корректную частоту обновления статистики!
+      </div>
+    </div>
+  </div>
+
+  <!-- Конец всплывающих окон-->
+  <div class="container-fluid" align="center">
+    <h2 class="display-2">Монитор изменений</h2>
+    <br />
+    <div class="container">
+      <div class="row" alignt="center">
+        <table>
+          <tr>
+            <td>
+              <input
+                style="border-radius: 15px"
+                type="date"
+                id="date1"
+                class="form-control row-cols-md-3"
+              />
+            </td>
+            <td></td>
+            <td>
+              <input
+                style="border-radius: 15px"
+                type="date"
+                id="date2"
+                class="form-control row-cols-md-3"
+              />
+            </td>
+            <td></td>
+
+            <td>
+              <select
+                id="freqSelect"
+                class=".select2 form-select form-selectrow-cols-md-3"
+                aria-label="Default select example"
+                style="border-radius: 15px"
+              >
+                <option selected value="0">Выберите точность</option>
+                <option value="1">Минуты</option>
+                <option value="2">Часы</option>
+                <option value="3">Дни</option>
+              </select>
+            </td>
+            <td></td>
+            <td>
+              <button
+                style="border-radius: 15px"
+                id="setFilterDate"
+                class="btn form-control btn-outline-dark row-cols-md-3"
+              >
+                Выбрать
+              </button>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    <br />
+
+    <div class="container">
+      <div class="row" alignt="center">
+        <table>
+          <tr>
+            <td>
+              <div class="input-group row-cols-md-3">
+                <div class="input-group-prepend">
+                  <span
+                    style="border-radius: 15px 0 0 15px"
+                    class="input-group-text"
+                    id="inputGroup-sizing-default"
+                    >Частота обновления, с</span
+                  >
+                </div>
+                <input
+                  id="FreqInput"
+                  style="border-radius: 0 15px 15px 0"
+                  type="text"
+                  class="form-control"
+                  aria-label="Sizing example input"
+                  aria-describedby="inputGroup-sizing-default"
+                />
+              </div>
+            </td>
+            <td></td>
+            <td>
+              <button
+                style="border-radius: 15px"
+                id="setRealTimeMonitor"
+                class="btn form-control btn-outline-dark row-cols-md-3"
+              >
+                Мониторинг в реальном времени
+              </button>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <canvas id="myChart" class="table md-3" width="800" height="400"
+      >Диаграмма</canvas
+    >
+  </div>
+  <div class="container container-fluid" align="center">
+    <h4 class="display-4">Таблица всех изменений</h4>
+
+    <div>
+      <table class="table table-striped table-hover table-bordered">
         <thead>
-            <tr>
-                <th>TableName</th>
-                <th>Date</th>
-                <th>Info</th>
-            
-            </tr>
+          <tr>
+            <th>Название таблицы</th>
+            <th>Дата</th>
+            <th>Информация</th>
+          </tr>
         </thead>
-        <tbody>
-            <tr>
-                <td>
-                    testtable
-                </td>
-                <td>
-                    08.09.2022
-                </td>
-                <td>
-                    insert!
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    testtable
-                </td>
-                <td>
-                    08.09.2022
-                </td>
-                <td>
-                    insert!
-                </td>
-            </tr>
-
-        </tbody>
-    </table>
+        <tbody id="log"></tbody>
+      </table>
     </div>
-    <script>
-         </script>
-    
-    <script >
-        // $(function () {
-        //$('#datetimepicker1').datetimepicker({
-        //    locale: 'ru'
-        //    });
-        //});
-        var chart = new Chart("myChart",
-                    {
-                        type: 'line',
-                        data:
-                        {
-                            labels: [],
-                            datasets: [{
-                                label: 'Количество изменений',
-                                data: [],
-                                backgroundColor: [
-                                    'rgba(255, 99, 132, 0.2)',
-                                    'rgba(54, 162, 235, 0.2)',
-                                    'rgba(255, 206, 86, 0.2)',
-                                    'rgba(75, 192, 192, 0.2)',
-                                    'rgba(153, 102, 255, 0.2)',
-                                    'rgba(255, 159, 64, 0.2)'
-                                ],
-                                borderColor: [
-                                    'rgba(255, 99, 132, 1)',
-                                    'rgba(54, 162, 235, 1)',
-                                    'rgba(255, 206, 86, 1)',
-                                    'rgba(75, 192, 192, 1)',
-                                    'rgba(153, 102, 255, 1)',
-                                    'rgba(255, 159, 64, 1)'
-                                ],
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            
-                            scales: {
-                            y: {
-                                
-                                beginAtZero: true
-                            }
-                            }       
-                        }       
-                    });
+  </div>
 
-
-
-               var refreshIntervalRT;
-           
-
-             function updateChart()
-                    {
-                        
-                        $.ajax({
-                        type:"POST",
-                        url:"/Home/GetLogs",
-                        data: "",
-                        contextType: "application/json; charset=utf-8",
-                        dataType: "json",
-                        success: function(data2){
-                            chart.data.labels = data2[0];
-                            chart.data.datasets[0].data = data2[1];
-                            chart.update();
-                           
-                        },
-                        error: function() {console.log(data);}
-                        });
-
-                    }
-            $(document).ready(function() {
-                 refreshIntervalRT = setInterval(updateChart,1000);
-            });
-             
-            function SetRangedDate(obj)
-            {
-                $.ajax({
-                        type:"POST",
-                        url:"/Home/GetCertainLogs",
-                        data: obj,
-                        contextType: "application/json; charset=utf-8",
-                        dataType: "json",
-                        success: function(data2){
-                            chart.data.labels = data2[0];
-                            chart.data.datasets[0].data = data2[1];
-                            chart.update();
-
-                        },
-                        error: function() {console.log(data);}
-                        });
+  <script>
+    var firstLoad = true;
+    var chart = new Chart("myChart", {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: "Количество изменений",
+            data: [],
+            backgroundColor: [
+              "rgba(255, 99, 132, 0.2)",
+              "rgba(54, 162, 235, 0.2)",
+              "rgba(255, 206, 86, 0.2)",
+              "rgba(75, 192, 192, 0.2)",
+              "rgba(153, 102, 255, 0.2)",
+              "rgba(255, 159, 64, 0.2)",
+            ],
+            borderColor: [
+              "rgba(255, 99, 132, 1)",
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 206, 86, 1)",
+              "rgba(75, 192, 192, 1)",
+              "rgba(153, 102, 255, 1)",
+              "rgba(255, 159, 64, 1)",
+            ],
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+    function updateStats() {
+      $.ajax({
+        type: "GET",
+        url: "/HOME/GetMonitoringData",
+        data: "",
+        contextType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (gotData) {
+          console.log(`got metrics`);
+          console.log(gotData);
+          //$("cpu_load").val(gotData[0]);
+          document.getElementById("cpu_load_serv").innerHTML =
+            gotData[0] + " %";
+          document.getElementById("ram_load").innerHTML = gotData[1] + " MB";
+          document.getElementById("System_time").innerHTML =
+            gotData[2] + " Hours";
+        },
+        error: function (Errdata) {
+          console.log(`ERROR GETTING metrics ${Errdata}`);
+        },
+      });
+    }
+    var refreshTable;
+    function updateTable() {
+      $.ajax({
+        type: "GET",
+        url: "/Home/GetAllLogs",
+        data: "",
+        contextType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (gotData) {
+          if (firstLoad === false) {
+            var id = gotData[0].id;
+            var tempid = "#" + id;
+            var currentDate = $(`${tempid}`)[0].textContent;
+            if (
+              gotData[0].ts.split("T")[0] +
+                " " +
+                gotData[0].ts.split("T")[1] ===
+              currentDate
+            ) {
+              console.log("nothing changed...");
+              return;
             }
+          }
+          console.log(`got all logs `);
+          //console.log(gotData);
+          var logs = gotData;
+          var output = logs.map(
+            (i) =>
+              "<tr><td>" +
+              i.tablename +
+              `</td><td id=\"${i.id}\">` +
+              i.ts.split("T")[0] +
+              " " +
+              i.ts.split("T")[1] +
+              "</td><td>" +
+              JSON.stringify(i.valuejson).replaceAll("\\", "") +
+              "</td></tr>"
+          );
 
-                 $("#setFilterDate").click(function()
-                 {
-                     if ($("#date1").val() == "" || $("#date2").val() == "")
-                     {
-                         alert("Введите диапазон дат!");
-                         console.log("error getting input data");
-                         return;
-                     }
-                     if (Date.parse($("#date1").val()) > Date.parse($("#date2").val()))
-                     {
-                             alert("Укажите даты в корректном порядке! \nПервая дата: начальное значение, вторая дата: конечное значение.");
-                            console.log("first date bigger than second");
-                            return
-                     }
-                     var start = $("#date1").val();
-                     var end = $("#date2").val();
-                     console.log(start);
-                     console.log(end);
-                     var obj = {
-                         StartDate: start,
-                         EndDate: end
-                     };
-                     //console.log("#date2");
-                     clearInterval(refreshIntervalRT);
-                     console.log("clicked filter");
-                     SetRangedDate(obj);
-                 });
+          $("#log").html(output);
+          firstLoad = false;
+        },
+        error: function (Errdata) {
+          console.log(`ERROR GETTING ALL LOGS ${Errdata}`);
+        },
+      });
+    }
 
+    var refreshIntervalRT;
+    var refreshStats;
+    function updateChart() {
+      $.ajax({
+        type: "POST",
+        url: "/Home/GetLogs",
+        data: "",
+        contextType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (data2) {
+          //if (data2.Labels.Count() <= 0) return;
+          chart.data.labels = data2.labels;
+          chart.data.datasets[0].data = data2.values;
+          chart.update();
+        },
+        error: function (Errdata) {
+          console.log(Errdata);
+        },
+      });
+    }
+    $(document).ready(function () {
+      refreshTable = setInterval(updateTable, 5000);
+      refreshIntervalRT = setInterval(updateChart, 1000);
+      refreshStats = setInterval(updateStats, 1000);
+    });
 
-                 $("#setRealTimeMonitor").click(function(){
-                     refreshIntervalRT = setInterval(updateChart,500);
-                     updateChart});
+    function SetRangedDate(obj) {
+      $.ajax({
+        type: "POST",
+        url: "/Home/GetCertainLogs",
+        data: obj,
+        contextType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (data2) {
+          //console.log(data2);
+          chart.data.labels = data2.labels;
+          chart.data.datasets[0].data = data2.values;
+          chart.update();
+        },
+        error: function (ErrDate) {
+          console.log(ErrDate);
+        },
+      });
+    }
+    function setFilteredTable(obj) {
+      $.ajax({
+        type: "GET",
+        url: "/Home/GetAllLogsFiltered",
+        data: obj,
+        contextType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (gotData) {
+          console.log(`got all logs `);
+          //console.log(gotData);
+          //console.log(gotData);
+          //if (gotData.Labels.Count() <= 0 ) return;
+          var logs = gotData;
+          var output = logs.map(
+            (i) =>
+              "<tr><td>" +
+              i.tablename +
+              "</td><td>" +
+              i.ts.split("T")[0] +
+              " " +
+              i.ts.split("T")[1] +
+              "</td><td>" +
+              JSON.stringify(i.valuejson).replaceAll("\\", "") +
+              "</td></tr>"
+          );
+          //console.log($("#log").html);;
+          $("#log").html(output);
+        },
+        error: function (Errdata) {
+          console.log(`ERROR GETTING ALL LOGS ${Errdata}`);
+        },
+      });
+    }
 
+    $("#setFilterDate").click(function () {
+      if ($("#date1").val() === "" || $("#date2").val() === "") {
+        var toastLiveExample = document.getElementById("liveToast");
+        var toast = new bootstrap.Toast(toastLiveExample);
+        toast.show(toast);
+        console.log("error getting input data");
+        return;
+      }
+      if (Date.parse($("#date1").val()) > Date.parse($("#date2").val())) {
+        var toastLiveExample = document.getElementById("liveToast2");
+        var toast = new bootstrap.Toast(toastLiveExample);
+        toast.show(toast);
+        console.log("first date bigger than second");
+        return;
+      }
+      if ($("#freqSelect").value === 0) {
+        var toastLiveExample = document.getElementById(
+          "liveToastTypeAccurancy"
+        );
+        var toast = new bootstrap.Toast(toastLiveExample);
+        toast.show(toast);
+        console.log("invalid accurancy");
+        return;
+      }
+      var start = $("#date1").val();
+      var end = $("#date2").val();
+      var accr = Number($("#freqSelect").val());
+      if (start == end && accr === 3) {
+        var toastLiveExample = document.getElementById("liveToastEnterError");
+        var toast = new bootstrap.Toast(toastLiveExample);
+        toast.show(toast);
+        console.log("invalid parameteres");
+        return;
+      }
+      console.log(start);
+      console.log(end);
+      console.log(accr);
+      //console.log(typeof accr);
+      var obj = {
+        StartDate: start,
+        EndDate: end,
+        Accurancy: accr,
+      };
+      //console.log(typeof obj.Accurancy)
+      //console.log("#date2");
+      clearInterval(refreshIntervalRT);
+      clearInterval(refreshTable);
+      console.log("clicked filter");
+      SetRangedDate(obj);
+      setFilteredTable(obj);
+    });
 
-
-    </script>
-
-    
+    $("#setRealTimeMonitor").click(function () {
+      if (isNaN($("#FreqInput").val())) {
+        var toastLiveExample = document.getElementById("liveToast3");
+        var toast = new bootstrap.Toast(toastLiveExample);
+        toast.show(toast);
+        console.log("update frequency is not a number");
+        return;
+      }
+      var freq = $("#FreqInput").val() * 1000;
+      //console.log(freq);
+      if (freq <= 0 || freq > 36000000) {
+        var toastLiveExample = document.getElementById("liveToast3");
+        var toast = new bootstrap.Toast(toastLiveExample);
+        toast.show(toast);
+        console.log("error getting input data from update frequency");
+        return;
+      }
+      $("#date1").val("");
+      $("#date2").val("");
+      $("#freqSelect").val(null);
+      clearInterval(refreshIntervalRT);
+      clearInterval(refreshTable);
+      refreshTable = setInterval(updateTable, freq * 2);
+      refreshIntervalRT = setInterval(updateChart, freq);
+      console.log(refreshIntervalRT);
+    });
+  </script>
 </body>
