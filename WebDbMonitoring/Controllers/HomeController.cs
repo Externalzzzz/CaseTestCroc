@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using System.Reflection.Emit;
 using WebDbMonitoring.DbData;
 using WebDbMonitoring.Models;
 
@@ -31,24 +33,39 @@ namespace WebDbMonitoring.Controllers
 
             List<object> data = new List<object>();
             DateTime tempDate = DateTime.Now.AddSeconds(-1);
-            List<string> labels = new List<string>();
+            List<DateTime> labels = new List<DateTime>();
             List<int> LogsCount = new List<int>();
-            for (int i = 10; i >= 1; i--)
+            for (int i = 10; i >= 0; i--)
             {
-                labels.Add(tempDate.AddSeconds(-i).ToString(DateFormat));
+                labels.Add(tempDate.AddSeconds(-i));
             }
-            tempDate.ToString(DateFormat);
-            data.Add(labels);
+
+            Debug.WriteLine("labels");
+            foreach (var item in labels)
+                Debug.WriteLine(item);
+
             try
             {
-                LogsCount = (from l in _context.log
-                             where l.ts >= tempDate.AddSeconds(-10)
-                             where l.ts <= tempDate
-                             orderby l.ts
-                             group l by l.ts into gr
-                             select gr.Count())
-                                .ToList();
-                data.Add(LogsCount);
+                
+                    var tempGroupBY = (from l in _context.log
+                                       where l.ts >= new DateTime(labels[0].Year, labels[0].Month, labels[0].Day, labels[0].Hour, labels[0].Minute, labels[0].Second)
+                                       where l.ts <= new DateTime(tempDate.Year, tempDate.Month, tempDate.Day, tempDate.Hour, tempDate.Minute, tempDate.Second)
+                                       orderby l.ts descending
+                                       group l by l.ts into gr
+                                       select new { ts = gr.Key, Count = gr.Count() })
+                    .ToList();
+                Debug.Write("groupby");
+                foreach (var item in tempGroupBY)
+                    Debug.WriteLine(item);
+                LogsCount = (from label in labels
+                join t in tempGroupBY on new DateTime(label.Year, label.Month, label.Day, label.Hour, label.Minute, label.Second) equals t.ts into gr
+                             from g in gr.DefaultIfEmpty(null)
+                             select g?.Count ?? 0)
+                            .ToList();
+                Debug.WriteLine("Logs");
+                foreach (var item in LogsCount)
+                    Debug.WriteLine(item);
+
 
             }
             catch
@@ -56,7 +73,7 @@ namespace WebDbMonitoring.Controllers
                 return errorReturn;
             }
 
-            return new ChartModel(labels, LogsCount);
+            return new ChartModel(labels.Select(x => x.ToString(DateFormat)).ToList(), LogsCount);
         }
         [HttpPost]
         public ChartModel GetCertainLogs(DateRange dateRange)
