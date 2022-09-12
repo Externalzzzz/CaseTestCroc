@@ -307,7 +307,7 @@
     </div>
   </div>
 
-  <script>
+<script>
     var firstLoad = true;
     var chart = new Chart("myChart", {
       type: "line",
@@ -355,7 +355,6 @@
         success: function (gotData) {
           console.log(`got metrics`);
           console.log(gotData);
-          //$("cpu_load").val(gotData[0]);
           document.getElementById("cpu_load_serv").innerHTML =
             gotData[0] + " %";
           document.getElementById("ram_load").innerHTML = gotData[1] + " MB";
@@ -380,6 +379,10 @@
             var id = gotData[0].id;
             var tempid = "#" + id;
             var currentDate = $(`${tempid}`)[0].textContent;
+            console.log(currentDate);
+            console.log(gotData[0].ts.split("T")[0] +
+                " " +
+                gotData[0].ts.split("T")[1]);
             if (
               gotData[0].ts.split("T")[0] +
                 " " +
@@ -391,7 +394,6 @@
             }
           }
           console.log(`got all logs `);
-          //console.log(gotData);
           var logs = gotData;
           var output = logs.map(
             (i) =>
@@ -467,16 +469,13 @@
         contextType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (gotData) {
-          console.log(`got all logs `);
-          //console.log(gotData);
-          //console.log(gotData);
-          //if (gotData.Labels.Count() <= 0 ) return;
+          console.log(`got all logs`);
           var logs = gotData;
           var output = logs.map(
             (i) =>
               "<tr><td>" +
               i.tablename +
-              "</td><td>" +
+              `</td><td id=\"${i.id}\">` +
               i.ts.split("T")[0] +
               " " +
               i.ts.split("T")[1] +
@@ -554,7 +553,7 @@
         return;
       }
       var freq = $("#FreqInput").val() * 1000;
-      //console.log(freq);
+
       if (freq <= 0 || freq > 36000000) {
         var toastLiveExample = document.getElementById("liveToast3");
         var toast = new bootstrap.Toast(toastLiveExample);

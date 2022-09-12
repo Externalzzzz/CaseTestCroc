@@ -16,6 +16,7 @@ namespace WebDbMonitoring.Controllers
         PerformanceCounter total_CPU = new PerformanceCounter("Processor Information", "% Processor Time", "_Total");
         PerformanceCounter total_Mem = new PerformanceCounter("Memory", "Available MBytes");
         PerformanceCounter total_Time = new PerformanceCounter("System", "System Up Time");
+
         public HomeController(DbContextLogs context)
         {
             _context = context;
@@ -25,12 +26,12 @@ namespace WebDbMonitoring.Controllers
         {
             return View();
         }
-        private readonly ChartModel errorReturn = new ChartModel(new List<string>(), new List<int>());
+
+        private readonly ChartModel _errorReturn = new ChartModel(new List<string>(), new List<int>());
 
         [HttpPost]
         public ChartModel GetLogs()
         {
-
             List<object> data = new List<object>();
             DateTime tempDate = DateTime.Now.AddSeconds(-1);
             List<DateTime> labels = new List<DateTime>();
@@ -40,41 +41,32 @@ namespace WebDbMonitoring.Controllers
                 labels.Add(tempDate.AddSeconds(-i));
             }
 
-            Debug.WriteLine("labels");
-            foreach (var item in labels)
-                Debug.WriteLine(item);
 
             try
             {
-                
-                    var tempGroupBY = (from l in _context.log
-                                       where l.ts >= new DateTime(labels[0].Year, labels[0].Month, labels[0].Day, labels[0].Hour, labels[0].Minute, labels[0].Second)
-                                       where l.ts <= new DateTime(tempDate.Year, tempDate.Month, tempDate.Day, tempDate.Hour, tempDate.Minute, tempDate.Second)
-                                       orderby l.ts descending
-                                       group l by l.ts into gr
-                                       select new { ts = gr.Key, Count = gr.Count() })
-                    .ToList();
-                Debug.Write("groupby");
-                foreach (var item in tempGroupBY)
-                    Debug.WriteLine(item);
                 LogsCount = (from label in labels
-                join t in tempGroupBY on new DateTime(label.Year, label.Month, label.Day, label.Hour, label.Minute, label.Second) equals t.ts into gr
-                             from g in gr.DefaultIfEmpty(null)
-                             select g?.Count ?? 0)
-                            .ToList();
-                Debug.WriteLine("Logs");
-                foreach (var item in LogsCount)
-                    Debug.WriteLine(item);
-
-
+                        join t in (from l in _context.log
+                            where l.ts >= new DateTime(labels[0].Year, labels[0].Month, labels[0].Day, labels[0].Hour,
+                                labels[0].Minute, labels[0].Second)
+                            where l.ts <= new DateTime(tempDate.Year, tempDate.Month, tempDate.Day, tempDate.Hour,
+                                tempDate.Minute, tempDate.Second)
+                            orderby l.ts descending
+                            group l by l.ts
+                            into gr
+                            select new { ts = gr.Key, Count = gr.Count() }).AsNoTracking() on new DateTime(label.Year,
+                            label.Month, label.Day, label.Hour, label.Minute, label.Second) equals t.ts into gr
+                        from g in gr.DefaultIfEmpty(null)
+                        select g?.Count ?? 0)
+                    .ToList();
             }
             catch
             {
-                return errorReturn;
+                return _errorReturn;
             }
 
             return new ChartModel(labels.Select(x => x.ToString(DateFormat)).ToList(), LogsCount);
         }
+
         [HttpPost]
         public ChartModel GetCertainLogs(DateRange dateRange)
         {
@@ -83,111 +75,101 @@ namespace WebDbMonitoring.Controllers
             labels.Add(dateRange.StartDate);
             DateTime dr = dateRange.StartDate;
 
-            Debug.WriteLine($"start: {dateRange.StartDate}\t end: {dateRange.EndDate}\tAccurancy: {dateRange.Accurancy}");
-
-            foreach (var item in labels)
-                Debug.WriteLine(item);
-
             List<int> LogsCount = new();
             try
             {
-
                 switch (dateRange.Accurancy)
                 {
                     case 1:
+                    {
+                        while (dr < dateRange.EndDate.AddDays(1))
                         {
-                            while (dr < dateRange.EndDate.AddDays(1))
-                            {
-                                dr = dr.AddMinutes(1);
-                                labels.Add(dr);
-                            }
-                            var tempGroupBY = (from l in _context.log
-                                               orderby l.ts
-                                               group l by new DateTime(l.ts.Year, l.ts.Month, l.ts.Day, l.ts.Hour, l.ts.Minute, 0) into gr
-                                               select new { ts = gr.Key, Count = gr.Count() })
-                                                .ToList();
-
-
-                            LogsCount = (from label in labels
-                                         join t in tempGroupBY on label equals t.ts into gr
-                                         from g in gr.DefaultIfEmpty(null)
-                                         select g?.Count ?? 0)
-                                               .ToList();
-
-                            break;
+                            dr = dr.AddMinutes(1);
+                            labels.Add(dr);
                         }
+
+
+                        LogsCount = (from label in labels
+                                join t in (from l in _context.log
+                                        orderby l.ts
+                                        group l by new DateTime(l.ts.Year, l.ts.Month, l.ts.Day, l.ts.Hour, l.ts.Minute,
+                                            0)
+                                        into gr
+                                        select new { ts = gr.Key, Count = gr.Count() }).AsNoTracking()
+                                    on label equals t.ts into gr
+                                from g in gr.DefaultIfEmpty(null)
+                                select g?.Count ?? 0)
+                            .ToList();
+
+                        break;
+                    }
                     case 2:
+                    {
+                        while (dr < dateRange.EndDate.AddDays(1))
                         {
-                            while (dr < dateRange.EndDate.AddDays(1))
-                            {
-                                dr = dr.AddHours(1);
-                                labels.Add(dr);
-                            }
-                            var tempGroupBY = (from l in _context.log
-                                               orderby l.ts
-                                               group l by new DateTime(l.ts.Year, l.ts.Month, l.ts.Day, l.ts.Hour, 0, 0) into gr
-                                               select new { ts = gr.Key, Count = gr.Count() })
-                                    .ToList();
-                            LogsCount = (from label in labels
-                                         join t in tempGroupBY on label equals t.ts into gr
-                                         from g in gr.DefaultIfEmpty(null)
-                                         select g?.Count ?? 0).
-                                               ToList();
-
-
-                            break;
+                            dr = dr.AddHours(1);
+                            labels.Add(dr);
                         }
+
+                        LogsCount = (from label in labels
+                            join t in (from l in _context.log
+                                    orderby l.ts
+                                    group l by new DateTime(l.ts.Year, l.ts.Month, l.ts.Day, l.ts.Hour, 0, 0)
+                                    into gr
+                                    select new { ts = gr.Key, Count = gr.Count() })
+                                .AsNoTracking() on label equals t.ts into gr
+                            from g in gr.DefaultIfEmpty(null)
+                            select g?.Count ?? 0).ToList();
+
+
+                        break;
+                    }
                     case 3:
+                    {
+                        while (dr < dateRange.EndDate)
                         {
-                            while (dr < dateRange.EndDate)
-                            {
-                                dr = dr.AddDays(1);
-                                labels.Add(dr);
-                            }
-                            var tempGroupBY = (from l in _context.log
-                                               orderby l.ts
-                                               group l by new DateTime(l.ts.Year, l.ts.Month, l.ts.Day) into gr
-                                               select new { ts = gr.Key, Count = gr.Count() })
-                                                           .ToList();
-                            foreach (var item in tempGroupBY)
-                                Debug.WriteLine(item);
-
-                            LogsCount = (from label in labels
-                                         join t in tempGroupBY on label equals t.ts into gr
-                                         from g in gr.DefaultIfEmpty(null)
-                                         select g?.Count ?? 0).
-                                               ToList();
-
-                            foreach (var item in LogsCount)
-                                Debug.WriteLine(item);
-                            break;
-
+                            dr = dr.AddDays(1);
+                            labels.Add(dr);
                         }
 
+
+                        LogsCount = (from label in labels
+                            join t in (from l in _context.log
+                                    orderby l.ts
+                                    group l by new DateTime(l.ts.Year, l.ts.Month, l.ts.Day)
+                                    into gr
+                                    select new { ts = gr.Key, Count = gr.Count() })
+                                .AsNoTracking() on label equals t.ts into gr
+                            from g in gr.DefaultIfEmpty(null)
+                            select g?.Count ?? 0).ToList();
+                        break;
+                    }
                 }
             }
             catch
             {
-                return errorReturn;
+                return _errorReturn;
             }
 
             return new ChartModel(labels.Select(x => x.ToString(DateFormat)).ToList(), LogsCount);
         }
+
         [HttpGet]
         public JsonResult GetAllLogs()
         {
             List<LogEntity> res = new();
             try
             {
-                res = (from l in _context.log orderby l.ts descending select l).ToList();
-
+                res = (from l in _context.log orderby l.ts descending select l).AsNoTracking().ToList();
             }
             catch
             {
-                return Json(errorReturn);
+                return Json(_errorReturn);
             }
+
             return Json(res);
         }
+
         [HttpGet]
         public JsonResult GetAllLogsFiltered(DateRange dateRange)
         {
@@ -195,18 +177,19 @@ namespace WebDbMonitoring.Controllers
             try
             {
                 res = (from l in _context.log
-                       where l.ts >= dateRange.StartDate
-                       where l.ts < dateRange.EndDate.AddDays(1)
-                       orderby l.ts descending
-                       select l).ToList();
-
+                    where l.ts >= dateRange.StartDate
+                    where l.ts < dateRange.EndDate.AddDays(1)
+                    orderby l.ts descending
+                    select l).AsNoTracking().ToList();
             }
             catch
             {
-                return Json(errorReturn);
+                return Json(_errorReturn);
             }
+
             return Json(res);
         }
+
         [HttpGet]
         public JsonResult GetMonitoringData()
         {
@@ -218,12 +201,10 @@ namespace WebDbMonitoring.Controllers
             Thread.Sleep(1000);
             res.Add(((int)total_CPU.NextValue()).ToString());
             res.Add(((int)total_Mem.NextValue()).ToString());
-            res.Add((TimeSpan.FromSeconds(total_Time.NextValue())).ToString(@"hh\:mm"));
+            res.Add(TimeSpan.FromSeconds(total_Time.NextValue()).ToString(@"hh\:mm"));
 
-            
+
             return Json(res);
         }
-
-
     }
 }
