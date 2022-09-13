@@ -72,6 +72,54 @@
       </div>
     </div>
     <br />
+    <div class="container">
+      <div class="row" alignt="center">
+        <table>
+          <tr>
+            <td>
+              <div class="input-group row-cols-md-3">
+                <div class="input-group-prepend">
+                  <span
+                    style="border-radius: 15px 0 0 15px"
+                    class="input-group-text"
+                    id="inputGroup-sizing-default"
+                    >Частота обновления, с</span
+                  >
+                </div>
+                <input
+                  id="FreqStatsInput"
+                  style="border-radius: 0 15px 15px 0"
+                  type="text"
+                  class="form-control"
+                  aria-label="Sizing example input"
+                  aria-describedby="inputGroup-sizing-default"
+                />
+              </div>
+            </td>
+            <td></td>
+            <td>
+              <button
+                style="border-radius: 15px"
+                id="setUpdateStatsTime"
+                class="btn form-control btn-outline-dark row-cols-md-3"
+              >
+                Выбрать
+              </button>
+            </td>
+            <td></td>
+            <td>
+              <button
+                style="border-radius: 15px"
+                id="setRealTimeStatMonitor"
+                class="btn form-control btn-outline-dark row-cols-md-3"
+              >
+                Мониторинг в реальном времени
+              </button>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
   </div>
 
   <br />
@@ -307,8 +355,12 @@
     </div>
   </div>
 
-<script>
+  <script>
     var firstLoad = true;
+    var refreshIntervalRT;
+    var refreshStats;
+    var refreshTable;
+
     var chart = new Chart("myChart", {
       type: "line",
       data: {
@@ -353,8 +405,6 @@
         contextType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (gotData) {
-          console.log(`got metrics`);
-          console.log(gotData);
           document.getElementById("cpu_load_serv").innerHTML =
             gotData[0] + " %";
           document.getElementById("ram_load").innerHTML = gotData[1] + " MB";
@@ -366,7 +416,7 @@
         },
       });
     }
-    var refreshTable;
+
     function updateTable() {
       $.ajax({
         type: "GET",
@@ -379,10 +429,10 @@
             var id = gotData[0].id;
             var tempid = "#" + id;
             var currentDate = $(`${tempid}`)[0].textContent;
-            console.log(currentDate);
-            console.log(gotData[0].ts.split("T")[0] +
-                " " +
-                gotData[0].ts.split("T")[1]);
+            //console.log(currentDate);
+            //console.log(
+            //  gotData[0].ts.split("T")[0] + " " + gotData[0].ts.split("T")[1]
+            //);
             if (
               gotData[0].ts.split("T")[0] +
                 " " +
@@ -393,7 +443,6 @@
               return;
             }
           }
-          console.log(`got all logs `);
           var logs = gotData;
           var output = logs.map(
             (i) =>
@@ -407,7 +456,6 @@
               JSON.stringify(i.valuejson).replaceAll("\\", "") +
               "</td></tr>"
           );
-
           $("#log").html(output);
           firstLoad = false;
         },
@@ -417,8 +465,6 @@
       });
     }
 
-    var refreshIntervalRT;
-    var refreshStats;
     function updateChart() {
       $.ajax({
         type: "POST",
@@ -427,7 +473,6 @@
         contextType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (data2) {
-          //if (data2.Labels.Count() <= 0) return;
           chart.data.labels = data2.labels;
           chart.data.datasets[0].data = data2.values;
           chart.update();
@@ -451,7 +496,6 @@
         contextType: "application/json; charset=utf-8",
         dataType: "json",
         success: function (data2) {
-          //console.log(data2);
           chart.data.labels = data2.labels;
           chart.data.datasets[0].data = data2.values;
           chart.update();
@@ -483,14 +527,40 @@
               JSON.stringify(i.valuejson).replaceAll("\\", "") +
               "</td></tr>"
           );
-          //console.log($("#log").html);;
-          $("#log").html(output);
         },
         error: function (Errdata) {
           console.log(`ERROR GETTING ALL LOGS ${Errdata}`);
         },
       });
     }
+
+    $("#setUpdateStatsTime").click(function () {
+      if (isNaN($("#FreqStatsInput").val())) {
+        var toastLiveExample = document.getElementById("liveToast3");
+        var toast = new bootstrap.Toast(toastLiveExample);
+        toast.show(toast);
+        console.log("update frequency is not a number");
+        return;
+      }
+      var freq = $("#FreqStatsInput").val() * 1000;
+
+      if (freq <= 0 || freq > 36000000) {
+        var toastLiveExample = document.getElementById("liveToast3");
+        var toast = new bootstrap.Toast(toastLiveExample);
+        toast.show(toast);
+        console.log("error getting input data from update frequency");
+        return;
+      }
+
+      clearInterval(updateStats);
+      refreshStats = setInterval(updateStats, freq);
+    });
+
+    $("#setRealTimeStatMonitor").click(function () {
+      console.log("1 sec ipdate stats");
+      clearInterval(updateStats);
+      refreshStats = setInterval(updateStats, 1000);
+    });
 
     $("#setFilterDate").click(function () {
       if ($("#date1").val() === "" || $("#date2").val() === "") {
@@ -535,8 +605,6 @@
         EndDate: end,
         Accurancy: accr,
       };
-      //console.log(typeof obj.Accurancy)
-      //console.log("#date2");
       clearInterval(refreshIntervalRT);
       clearInterval(refreshTable);
       console.log("clicked filter");
